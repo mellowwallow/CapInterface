@@ -1,0 +1,7 @@
+{
+  "name": "HarvestHub",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

@@ -1,0 +1,230 @@
+<ion-header>
+ <ion-toolbar color="primary" class="customer-header">
+  <ion-buttons slot="start">
+    <ion-menu-button color="light"></ion-menu-button>
+    <ion-title class="header-title">
+      <ion-icon name="cart-outline" class="header-icon"></ion-icon>
+      FreshMart
+    </ion-title>
+  </ion-buttons>
+
+  <ion-buttons slot="end">
+    <ion-button fill="clear" color="light" class="cart-btn" (click)="openCart()">
+      <ion-icon name="cart" slot="icon-only"></ion-icon>
+      <ion-badge color="danger" *ngIf="selectedItems.length > 0">{{ selectedItems.length }}</ion-badge>
+    </ion-button>
+
+    <ion-chip color="light" class="user-chip">
+      <ion-avatar>
+        <img src="https://i.pravatar.cc/150?img=3" />
+      </ion-avatar>
+      <ion-label>{{ userName }}</ion-label>
+    </ion-chip>
+  </ion-buttons>
+</ion-toolbar>
+</ion-header>
+
+<ion-content class="customer-content">
+  <!-- Welcome Banner -->
+<div class="welcome-banner" *ngIf="showWelcome">
+  <h2>Hello, {{ userName }}!</h2>
+  <p>What would you like to order today?</p>
+</div>
+
+
+  <!-- Quick Stats -->
+  <div class="quick-stats">
+  <div class="stat-card" *ngFor="let card of summaryCards">
+    <ion-icon [name]="card.icon"></ion-icon>
+    <div class="stat-value">{{ card.value }}</div>
+    <div class="stat-label">{{ card.title }}</div>
+  </div>
+</div>
+
+
+  <!-- Search and Categories -->
+  <div class="search-section">
+    <ion-searchbar 
+      [(ngModel)]="searchQuery" 
+      (ionInput)="onSearchChange($event)" 
+      placeholder="Search products..."
+      animated
+      clear-icon="close-circle"
+      class="customer-search">
+    </ion-searchbar>
+    
+    <ion-segment [(ngModel)]="activeSegment" (ionChange)="segmentChanged($event)" class="category-segment">
+      <ion-segment-button value="all">
+        <ion-label>All</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="vegetables">
+        <ion-label>Vegetables</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="meats">
+        <ion-label>Meats</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </div>
+
+  <!-- Product List -->
+  <ion-list class="product-list">
+    <ion-item-group *ngFor="let category of filteredCategories">
+      <ion-item-divider sticky>
+        <ion-label>{{ category.name }}</ion-label>
+      </ion-item-divider>
+      
+      <ion-item-sliding *ngFor="let item of category.items">
+        <ion-item class="product-item" (click)="viewProduct(item)">
+          <ion-thumbnail slot="start">
+            <img [src]="item.image" />
+          </ion-thumbnail>
+          
+          <ion-label class="product-info">
+            <h3>{{ item.name }}</h3>
+            <p class="product-price">{{ formatPrice(item.price) }} <span>per {{ item.unit }}</span></p>
+            <p class="product-stock" [class.low-stock]="item.quantity <= item.threshold">
+              <ion-icon name="pricetag-outline"></ion-icon>
+              {{ item.quantity }} {{ item.unit }} available
+            </p>
+          </ion-label>
+          
+          <div class="quantity-controls" *ngIf="isItemSelected(item)">
+            <ion-button fill="clear" size="small" color="danger" (click)="updateQuantity(item, -1); $event.stopPropagation()">
+              <ion-icon name="remove-outline"></ion-icon>
+            </ion-button>
+            <ion-badge color="light">{{ getSelectedItemQuantity(item) }}</ion-badge>
+            <ion-button fill="clear" size="small" color="success" (click)="updateQuantity(item, 1); $event.stopPropagation()">
+              <ion-icon name="add-outline"></ion-icon>
+            </ion-button>
+          </div>
+          
+          <ion-button 
+            *ngIf="!isItemSelected(item)" 
+            fill="outline" 
+            size="small" 
+            color="primary" 
+            (click)="toggleItemSelection(item); $event.stopPropagation()">
+            Add
+          </ion-button>
+        </ion-item>
+        
+        <ion-item-options side="end">
+          <ion-item-option color="primary" (click)="toggleItemSelection(item)">
+            <ion-icon slot="icon-only" [name]="isItemSelected(item) ? 'cart-off' : 'cart'"></ion-icon>
+          </ion-item-option>
+        </ion-item-options>
+      </ion-item-sliding>
+    </ion-item-group>
+  </ion-list>
+</ion-content>
+
+<!-- Order Summary Footer -->
+<ion-footer *ngIf="selectedItems.length > 0" class="order-footer">
+  <ion-toolbar>
+    <ion-grid>
+      <ion-row>
+        <ion-col size="8" class="order-summary">
+          <div class="total-items">{{ getSelectedTotalQuantity() }} items</div>
+          <div class="total-price">{{ formatPrice(getSelectedTotalPrice()) }}</div>
+        </ion-col>
+        <ion-col size="4" class="checkout-btn-col">
+          <ion-button 
+            expand="block" 
+            color="success" 
+            (click)="openPaymentModal()"
+            class="checkout-btn">
+            Checkout
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>
+
+<!-- Payment Modal -->
+<ion-modal [isOpen]="showPaymentModal" (didDismiss)="closePaymentModal()" class="payment-modal">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Complete Your Order</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closePaymentModal()">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content class="payment-content">
+      <ion-list>
+        <ion-list-header>
+          <ion-label>Order Summary</ion-label>
+        </ion-list-header>
+        
+        <ion-item *ngFor="let item of selectedItems">
+          <ion-thumbnail slot="start">
+            <img [src]="item.image" />
+          </ion-thumbnail>
+          <ion-label>
+            {{ item.name }}
+            <p>{{ item.quantity }} {{ item.unit }} × {{ formatPrice(item.price) }}</p>
+          </ion-label>
+          <ion-note slot="end">{{ formatPrice(item.quantity * item.price) }}</ion-note>
+        </ion-item>
+        
+        <ion-item class="total-row">
+          <ion-label>Total</ion-label>
+          <ion-note slot="end">{{ formatPrice(getSelectedTotalPrice()) }}</ion-note>
+        </ion-item>
+      </ion-list>
+      
+      <ion-list>
+        <ion-list-header>
+          <ion-label>Payment Method</ion-label>
+        </ion-list-header>
+        
+        <ion-radio-group [(ngModel)]="selectedPaymentMethod">
+          <ion-item *ngFor="let method of paymentMethods">
+            <ion-radio slot="start" [value]="method.id"></ion-radio>
+            <ion-label>
+              <ion-icon [name]="method.icon" slot="start"></ion-icon>
+              {{ method.name }}
+            </ion-label>
+          </ion-item>
+        </ion-radio-group>
+      </ion-list>
+      
+      <div class="payment-input">
+        <ion-item>
+          <ion-label position="floating">Amount Received</ion-label>
+          <ion-input 
+            type="number" 
+            [(ngModel)]="paymentAmount" 
+            (ionChange)="calculatePaymentChange()"
+            min="0"
+            step="0.01"></ion-input>
+        </ion-item>
+        
+        <div class="change-amount" *ngIf="paymentChange >= 0">
+          Change: {{ formatPrice(paymentChange) }}
+        </div>
+        <div class="insufficient-amount" *ngIf="paymentChange < 0">
+          Insufficient by: {{ formatPrice(-paymentChange) }}
+        </div>
+      </div>
+    </ion-content>
+    
+    <ion-footer>
+      <ion-toolbar>
+        <ion-button 
+          expand="block" 
+          color="success" 
+          (click)="confirmPayment()"
+          [disabled]="paymentChange < 0 || paymentProcessing">
+          <ion-spinner *ngIf="paymentProcessing" name="lines"></ion-spinner>
+          <span *ngIf="!paymentProcessing">Complete Payment</span>
+        </ion-button>
+      </ion-toolbar>
+    </ion-footer>
+  </ng-template>
+</ion-modal>

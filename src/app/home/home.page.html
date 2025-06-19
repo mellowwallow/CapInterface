@@ -1,0 +1,42 @@
+<ion-header translucent>
+  <ion-toolbar color="primary">
+    <ion-title class="ion-text-center">Welcome Back</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" fullscreen>
+  <div class="container">
+    <ion-card>
+      <ion-card-header>
+        <ion-segment [(ngModel)]="isLogin" color="primary">
+          <ion-segment-button [value]="true">
+            <ion-label>Login</ion-label>
+          </ion-segment-button>
+          <ion-segment-button [value]="false">
+            <ion-label>Register</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (submit)="isLogin ? login() : register()">
+          <ion-item lines="full">
+            <ion-icon name="mail-outline" slot="start"></ion-icon>
+            <ion-label position="floating">Email</ion-label>
+            <ion-input [(ngModel)]="email" name="email" type="email" required></ion-input>
+          </ion-item>
+
+          <ion-item lines="full">
+            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+            <ion-label position="floating">Password</ion-label>
+            <ion-input [(ngModel)]="password" name="password" type="password" required></ion-input>
+          </ion-item>
+
+          <ion-button expand="block" type="submit" class="ion-margin-top" color="primary" shape="round">
+            {{ isLogin ? 'Login' : 'Register' }}
+          </ion-button>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

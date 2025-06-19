@@ -1,0 +1,55 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    
+    <ion-title>Transactions</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Transactions</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-list>
+    <ion-card *ngFor="let transaction of transactions">
+      <ion-card-header>
+        <ion-card-title>
+          {{ transaction.date | date:'medium' }}
+        </ion-card-title>
+        <ion-card-subtitle>
+          <ion-icon name="card-outline"></ion-icon>
+          Payment Method: {{ transaction.paymentMethod }}
+        </ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let item of transaction.items" lines="full">
+            <ion-label>
+              <h3>{{ item.name }} ({{ item.quantity }})</h3>
+              <p>{{ formatPrice(item.price) }} each</p>
+            </ion-label>
+            <ion-note slot="end">
+              {{ formatPrice(item.price * item.quantity) }}
+            </ion-note>
+          </ion-item>
+        </ion-list>
+        <ion-item lines="none">
+          <ion-label>
+            <h2>Total:</h2>
+          </ion-label>
+          <ion-note slot="end" color="success" style="font-size: 1.2em;">
+            {{ formatPrice(transaction.total) }}
+          </ion-note>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+  </ion-list>
+</ion-content>

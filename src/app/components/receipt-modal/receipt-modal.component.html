@@ -1,0 +1,48 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Receipt</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()">Close</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="receipt-container">
+    <h2>Your Receipt</h2>
+    <p>Date: {{transaction.date | date:'medium'}}</p>
+    <p>Customer: {{transaction.customerName}}</p>
+    
+    <ion-list>
+      <ion-item *ngFor="let item of transaction.items">
+        <ion-label>
+          {{item.name}} 
+          <p>{{item.quantity}} {{item.unit}} × {{item.price | currency:'PHP'}}</p>
+        </ion-label>
+        <ion-note slot="end">{{item.quantity * item.price | currency:'PHP'}}</ion-note>
+      </ion-item>
+    </ion-list>
+
+    <ion-item>
+      <ion-label>Payment Method:</ion-label>
+      <ion-note slot="end">{{transaction.paymentMethod | titlecase}}</ion-note>
+    </ion-item>
+
+    <ion-item>
+      <ion-label>Total:</ion-label>
+      <ion-note slot="end">{{transaction.total | currency:'PHP'}}</ion-note>
+    </ion-item>
+
+    <ion-item>
+      <ion-label>Amount Paid:</ion-label>
+      <ion-note slot="end">{{transaction.amountPaid | currency:'PHP'}}</ion-note>
+    </ion-item>
+
+    <ion-item>
+      <ion-label>Change:</ion-label>
+      <ion-note slot="end">{{transaction.change | currency:'PHP'}}</ion-note>
+    </ion-item>
+  </div>
+
+  <ion-button expand="block" (click)="printReceipt()">Print Receipt</ion-button>
+</ion-content>
