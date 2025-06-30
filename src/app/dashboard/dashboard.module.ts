@@ -5,13 +5,15 @@ import { IonicModule } from '@ionic/angular';
 
 import { DashboardPageRoutingModule } from './dashboard-routing.module';
 import { DashboardPage } from './dashboard.page';
+import { ReceiptModalComponent } from '../components/receipt-modal/receipt-modal.component';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    DashboardPageRoutingModule // Keep only routing and other necessary modules
-  ]
+    DashboardPageRoutingModule
+  ],
+  declarations: [DashboardPage, ReceiptModalComponent]
 })
 export class DashboardPageModule {}

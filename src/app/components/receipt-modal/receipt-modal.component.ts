@@ -1,14 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { IonicModule, ModalController } from '@ionic/angular';
+import { ModalController } from '@ionic/angular';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-receipt-modal',
   templateUrl: './receipt-modal.component.html',
   styleUrls: ['./receipt-modal.component.scss'],
-  standalone: true,
-  imports: [CommonModule, IonicModule]
+  standalone: false
 })
 export class ReceiptModalComponent {
   @Input() transaction: any;

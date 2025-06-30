@@ -31,6 +31,11 @@
   <p>What would you like to order today?</p>
 </div>
 
+<ion-button expand="full" color="success" class="add-product-btn" (click)="openAddProductModal()">
+  <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+  Add Product
+</ion-button>
+
 
   <!-- Quick Stats -->
   <div class="quick-stats">
@@ -98,19 +103,43 @@
             </ion-button>
           </div>
           
-          <ion-button 
-            *ngIf="!isItemSelected(item)" 
-            fill="outline" 
-            size="small" 
-            color="primary" 
-            (click)="toggleItemSelection(item); $event.stopPropagation()">
-            Add
-          </ion-button>
+          <div class="product-actions">
+            <ion-button
+              *ngIf="!isItemSelected(item)"
+              fill="outline"
+              size="small"
+              color="primary"
+              (click)="toggleItemSelection(item); $event.stopPropagation()">
+              Add
+            </ion-button>
+
+            <ion-button
+              fill="clear"
+              size="small"
+              color="warning"
+              (click)="editProduct(item); $event.stopPropagation()">
+              <ion-icon name="create-outline"></ion-icon>
+            </ion-button>
+
+            <ion-button
+              fill="clear"
+              size="small"
+              color="danger"
+              (click)="deleteProduct(item); $event.stopPropagation()">
+              <ion-icon name="trash-outline"></ion-icon>
+            </ion-button>
+          </div>
         </ion-item>
         
         <ion-item-options side="end">
           <ion-item-option color="primary" (click)="toggleItemSelection(item)">
             <ion-icon slot="icon-only" [name]="isItemSelected(item) ? 'cart-off' : 'cart'"></ion-icon>
+          </ion-item-option>
+          <ion-item-option color="warning" (click)="editProduct(item)">
+            <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+          </ion-item-option>
+          <ion-item-option color="danger" (click)="deleteProduct(item)">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
           </ion-item-option>
         </ion-item-options>
       </ion-item-sliding>
@@ -228,3 +257,122 @@
     </ion-footer>
   </ng-template>
 </ion-modal>
+
+<!-- Add Product Modal -->
+<ion-modal [isOpen]="showAddProductModal" (didDismiss)="closeAddProductModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Add Product</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeAddProductModal()">
+            <ion-icon name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <ion-item>
+        <ion-label position="floating">Product Name</ion-label>
+        <ion-input [(ngModel)]="newProductName"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Price</ion-label>
+        <ion-input type="number" [(ngModel)]="newProductPrice"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Quantity</ion-label>
+        <ion-input type="number" [(ngModel)]="newProductQuantity" min="0"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>Unit</ion-label>
+        <ion-select [(ngModel)]="newProductUnit" placeholder="Select Unit">
+          <ion-select-option value="kg">Kilogram (kg)</ion-select-option>
+          <ion-select-option value="g">Gram (g)</ion-select-option>
+          <ion-select-option value="lb">Pound (lb)</ion-select-option>
+          <ion-select-option value="oz">Ounce (oz)</ion-select-option>
+          <ion-select-option value="pcs">Pieces (pcs)</ion-select-option>
+          <ion-select-option value="box">Box</ion-select-option>
+          <ion-select-option value="bag">Bag</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>Category</ion-label>
+        <ion-select [(ngModel)]="newProductCategory" placeholder="Select Category">
+          <ion-select-option value="vegetables">Vegetables</ion-select-option>
+          <ion-select-option value="meats">Meats</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-button expand="full" color="success" (click)="addProduct()">
+        <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+        Add
+      </ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Edit Product Modal -->
+<ion-modal [isOpen]="showEditProductModal" (didDismiss)="closeEditProductModal()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Edit Product</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeEditProductModal()">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="ion-padding">
+      <ion-item>
+        <ion-label position="floating">Product Name</ion-label>
+        <ion-input [(ngModel)]="editProductName"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Price</ion-label>
+        <ion-input type="number" [(ngModel)]="editProductPrice"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="floating">Quantity</ion-label>
+        <ion-input type="number" [(ngModel)]="editProductQuantity" min="0"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>Unit</ion-label>
+        <ion-select [(ngModel)]="editProductUnit" placeholder="Select Unit">
+          <ion-select-option value="kg">Kilogram (kg)</ion-select-option>
+          <ion-select-option value="g">Gram (g)</ion-select-option>
+          <ion-select-option value="lb">Pound (lb)</ion-select-option>
+          <ion-select-option value="oz">Ounce (oz)</ion-select-option>
+          <ion-select-option value="pcs">Pieces (pcs)</ion-select-option>
+          <ion-select-option value="box">Box</ion-select-option>
+          <ion-select-option value="bag">Bag</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label>Category</ion-label>
+        <ion-select [(ngModel)]="editProductCategory" placeholder="Select Category">
+          <ion-select-option value="vegetables">Vegetables</ion-select-option>
+          <ion-select-option value="meats">Meats</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-button expand="full" color="primary" (click)="updateProduct()">
+        <ion-icon name="save-outline" slot="start"></ion-icon>
+        Update Product
+      </ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+

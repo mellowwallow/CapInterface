@@ -1,25 +1,18 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { IonicModule, ToastController, ModalController } from '@ionic/angular';
+import { Component, OnInit } from '@angular/core';
+import { ToastController, ModalController, AlertController } from '@ionic/angular';
 import { AuthService } from '../auth.service';
 import { ReceiptModalComponent } from '../components/receipt-modal/receipt-modal.component';
 import { Router } from '@angular/router';
-import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { FirestoreService } from '../services/firestore.service';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.page.html',
   styleUrls: ['./dashboard.page.scss'],
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonicModule
-  ]
+  standalone: false
 })
-export class DashboardPage {
-   showWelcome = true;
+export class DashboardPage implements OnInit {
+  showWelcome = true;
   userName: string = 'Guest';
   activeSegment = 'all';
   searchQuery: string = '';
@@ -30,109 +23,55 @@ export class DashboardPage {
   paymentChange: number = 0;
   selectedPaymentMethod: string = 'cash';
 
-  // Customer Data
+  showAddProductModal = false;
+  newProductName = '';
+  newProductPrice: number = 0;
+  newProductCategory: string = 'vegetables';
+  newProductQuantity: number = 0;
+  newProductUnit: string = 'kg';
+
+  showEditProductModal = false;
+  editProductId: string = '';
+  editProductName = '';
+  editProductPrice: number = 0;
+  editProductCategory: string = 'vegetables';
+  editProductQuantity: number = 0;
+  editProductUnit: string = 'kg';
+
+  products: any[] = [];
+  filteredProducts: any[] = [];
+  transactionHistory: any[] = [];
+
   paymentMethods = [
     { id: 'cash', name: 'Cash', icon: 'cash-outline' },
     { id: 'credit_card', name: 'Credit Card', icon: 'card-outline' },
     { id: 'gcash', name: 'GCash', icon: 'phone-portrait-outline' },
     { id: 'paymaya', name: 'PayMaya', icon: 'wallet-outline' }
   ];
-  
+
   summaryCards = [
-    {
-      title: 'Available Products',
-      value: 0,
-      icon: 'cube-outline',
-      color: 'primary'
-    },
-    {
-      title: 'Special Offers',
-      value: 3,
-      icon: 'pricetag-outline',
-      color: 'warning'
-    },
-    {
-      title: 'Fresh Vegetables',
-      value: 0,
-      icon: 'leaf-outline',
-      color: 'success'
-    },
-    {
-      title: 'Quality Meats',
-      value: 0,
-      icon: 'nutrition-outline',
-      color: 'danger'
-    }
+    { title: 'Available Products', value: 0, icon: 'cube-outline', color: 'primary' },
+    { title: 'Special Offers', value: 3, icon: 'pricetag-outline', color: 'warning' },
+    { title: 'Fresh Vegetables', value: 0, icon: 'leaf-outline', color: 'success' },
+    { title: 'Quality Meats', value: 0, icon: 'nutrition-outline', color: 'danger' }
   ];
-
-  // Product Data
-  products = [
-    { 
-      id: 1,
-      name: 'Organic Carrots', 
-      manufactureDate: new Date('2023-10-15'), 
-      quantity: 50, 
-      price: 25.50, 
-      image: 'https://images.unsplash.com/photo-1447175008436-054170c2e979', 
-      category: 'vegetables', 
-      threshold: 10,
-      unit: 'kg',
-      selectedQuantity: 0
-    },
-    { 
-      id: 2,
-      name: 'Fresh Tomatoes', 
-      manufactureDate: new Date('2023-10-16'), 
-      quantity: 30, 
-      price: 35.75, 
-      image: 'https://images.unsplash.com/photo-1592841200221-a6895f5f0a0e', 
-      category: 'vegetables', 
-      threshold: 15,
-      unit: 'kg',
-      selectedQuantity: 0
-    },
-    { 
-      id: 3,
-      name: 'Premium Chicken Breast', 
-      manufactureDate: new Date('2023-10-14'), 
-      quantity: 20, 
-      price: 120.75, 
-      image: 'https://5.imimg.com/data5/RF/TQ/MY-11305339/raw-boneless-chicken-breasts-1000x1000.jpg', 
-      category: 'meats',
-      threshold: 5,
-      unit: 'kg',
-      selectedQuantity: 0
-    },
-    { 
-      id: 4,
-      name: 'Grass-fed Beef', 
-      manufactureDate: new Date('2023-10-13'), 
-      quantity: 15, 
-      price: 180.50, 
-      image: 'https://images.unsplash.com/photo-1558030136-1c1e6b0e8b0a', 
-      category: 'meats',
-      threshold: 5,
-      unit: 'kg',
-      selectedQuantity: 0
-    }
-  ];
-
-  filteredProducts: any[] = [...this.products];
-  transactionHistory: any[] = [];
 
   constructor(
     private authService: AuthService,
     private toastController: ToastController,
     private modalCtrl: ModalController,
     private router: Router,
-    private firestore: AngularFirestore
-  ) {
-    this.loadUserName();
-    this.updateSummaryCards();
-  }
+    private firestoreService: FirestoreService,
+    private alertController: AlertController
+  ) {}
 
-  isItemSelected(item: any): boolean {
-    return this.selectedItems.some(selected => selected.id === item.id);
+  ngOnInit() {
+    this.loadUserName();
+    this.loadProducts();
+
+    setTimeout(() => {
+      this.showWelcome = false;
+    }, 5000);
   }
 
   private loadUserName() {
@@ -141,18 +80,147 @@ export class DashboardPage {
     });
   }
 
-  // Customer Methods
-  openCart() {
-    if (this.selectedItems.length === 0) {
-      this.presentToast('Your cart is empty', 'warning');
-      return;
+  loadProducts() {
+    this.firestoreService.getProducts().subscribe(products => {
+      console.log('Products loaded from Firestore:', products);
+      this.products = products;
+      // Apply current search and segment filters
+      this.onSearchChange({ target: { value: this.searchQuery } });
+      this.updateSummaryCards();
+      console.log('Filtered products:', this.filteredProducts);
+      console.log('Active segment:', this.activeSegment);
+    });
+  }
+
+  openAddProductModal() {
+    this.showAddProductModal = true;
+  }
+
+  closeAddProductModal() {
+    this.showAddProductModal = false;
+    this.newProductName = '';
+    this.newProductPrice = 0;
+    this.newProductCategory = 'vegetables';
+    this.newProductQuantity = 0;
+    this.newProductUnit = 'kg';
+  }
+
+  private async saveProductToFirestore(product: any): Promise<any> {
+    return this.firestoreService.addProduct(product);
+  }
+
+  addProduct() {
+    if (this.newProductName && this.newProductPrice != null && this.newProductCategory && this.newProductQuantity != null && this.newProductUnit) {
+      const newProduct = {
+        name: this.newProductName,
+        price: this.newProductPrice,
+        unit: this.newProductUnit,
+        quantity: this.newProductQuantity,
+        threshold: 10,
+        image: 'https://via.placeholder.com/150',
+        category: this.newProductCategory,
+        createdAt: new Date()
+      };
+
+      // Use setTimeout to ensure the method runs in the next tick with proper injection context
+      setTimeout(async () => {
+        try {
+          await this.saveProductToFirestore(newProduct);
+          this.presentToast('Product added successfully', 'success');
+          this.closeAddProductModal();
+          // The real-time subscription in loadProducts() will automatically update the arrays
+        } catch (error) {
+          console.error('Error adding product to Firestore:', error);
+          this.presentToast('Failed to add product', 'danger');
+        }
+      }, 0);
+    } else {
+      this.presentToast('Please fill all fields', 'warning');
     }
-    this.openPaymentModal();
+  }
+
+  editProduct(product: any) {
+    this.editProductId = product.id;
+    this.editProductName = product.name;
+    this.editProductPrice = product.price;
+    this.editProductQuantity = product.quantity;
+    this.editProductUnit = product.unit;
+    this.editProductCategory = product.category;
+    this.showEditProductModal = true;
+  }
+
+  closeEditProductModal() {
+    this.showEditProductModal = false;
+    this.editProductId = '';
+    this.editProductName = '';
+    this.editProductPrice = 0;
+    this.editProductQuantity = 0;
+    this.editProductUnit = 'kg';
+    this.editProductCategory = 'vegetables';
+  }
+
+  updateProduct() {
+    if (this.editProductName && this.editProductPrice != null && this.editProductCategory &&
+        this.editProductQuantity != null && this.editProductUnit && this.editProductId) {
+
+      const updatedProduct = {
+        name: this.editProductName,
+        price: this.editProductPrice,
+        unit: this.editProductUnit,
+        quantity: this.editProductQuantity,
+        category: this.editProductCategory,
+        threshold: 10,
+        image: 'https://via.placeholder.com/150',
+        updatedAt: new Date()
+      };
+
+      setTimeout(async () => {
+        try {
+          await this.firestoreService.updateProduct(this.editProductId, updatedProduct);
+          this.presentToast('Product updated successfully', 'success');
+          this.closeEditProductModal();
+        } catch (error) {
+          console.error('Error updating product:', error);
+          this.presentToast('Failed to update product', 'danger');
+        }
+      }, 0);
+    } else {
+      this.presentToast('Please fill all fields', 'warning');
+    }
+  }
+
+  async deleteProduct(product: any) {
+    const alert = await this.alertController.create({
+      header: 'Confirm Delete',
+      message: `Are you sure you want to delete "${product.name}"?`,
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Delete',
+          handler: async () => {
+            try {
+              await this.firestoreService.deleteProduct(product.id);
+              this.presentToast('Product deleted successfully', 'success');
+            } catch (error) {
+              console.error('Error deleting product:', error);
+              this.presentToast('Failed to delete product', 'danger');
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  isItemSelected(item: any): boolean {
+    return this.selectedItems.some(selected => selected.id === item.id);
   }
 
   viewProduct(product: any) {
-    // In a real app, you might navigate to a product detail page
-    console.log('Viewing product:', product.name);
     this.presentToast(`Viewing ${product.name} details`, 'primary');
   }
 
@@ -162,7 +230,7 @@ export class DashboardPage {
       this.selectedItems.splice(index, 1);
       item.selectedQuantity = 0;
     } else {
-      this.selectedItems.push({...item, selectedQuantity: 1});
+      this.selectedItems.push({ ...item, selectedQuantity: 1 });
     }
   }
 
@@ -170,12 +238,7 @@ export class DashboardPage {
     const selectedItem = this.selectedItems.find(i => i.id === item.id);
     if (selectedItem) {
       selectedItem.selectedQuantity += change;
-      
-      // Ensure quantity doesn't go below 0 or above available stock
-      selectedItem.selectedQuantity = Math.max(0, 
-        Math.min(selectedItem.selectedQuantity, item.quantity));
-      
-      // Remove if quantity is 0
+      selectedItem.selectedQuantity = Math.max(0, Math.min(selectedItem.selectedQuantity, item.quantity));
       if (selectedItem.selectedQuantity <= 0) {
         this.toggleItemSelection(item);
       }
@@ -187,7 +250,14 @@ export class DashboardPage {
     return selectedItem ? selectedItem.selectedQuantity : 0;
   }
 
-  // Payment Methods
+  openCart() {
+    if (this.selectedItems.length === 0) {
+      this.presentToast('Your cart is empty', 'warning');
+      return;
+    }
+    this.openPaymentModal();
+  }
+
   openPaymentModal() {
     if (this.selectedItems.length === 0) {
       this.presentToast('Please add items to your cart first', 'warning');
@@ -216,12 +286,10 @@ export class DashboardPage {
     }
 
     this.paymentProcessing = true;
-    
+
     try {
-      // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create transaction record
+
       const transaction = {
         id: Date.now(),
         date: new Date(),
@@ -238,25 +306,19 @@ export class DashboardPage {
         total: this.getSelectedTotalPrice(),
         customerName: this.userName
       };
-      
-      // In a real app, you would save to Firestore here
-      // await this.firestore.collection('transactions').add(transaction);
-      
-      // Update inventory (in a real app, this would be server-side)
+
+      await this.firestoreService.addTransaction(transaction);
+
       this.selectedItems.forEach(selected => {
         const product = this.products.find(p => p.id === selected.id);
         if (product) {
           product.quantity -= selected.selectedQuantity;
         }
       });
-      
+
       this.transactionHistory.unshift(transaction);
       this.presentToast(`Payment of ${this.formatPrice(this.paymentAmount)} successful`, 'success');
-      
-      // Show receipt
       await this.showReceipt(transaction);
-      
-      // Clear selection
       this.selectedItems = [];
       this.showPaymentModal = false;
       this.updateSummaryCards();
@@ -271,18 +333,15 @@ export class DashboardPage {
   async showReceipt(transaction: any) {
     const modal = await this.modalCtrl.create({
       component: ReceiptModalComponent,
-      componentProps: {
-        transaction: transaction
-      },
+      componentProps: { transaction },
       cssClass: 'receipt-modal'
     });
     await modal.present();
   }
 
-  // Search and Filter
   onSearchChange(event: any) {
     const query = event.target.value.toLowerCase();
-    this.filteredProducts = this.products.filter(item => 
+    this.filteredProducts = this.products.filter(item =>
       item.name.toLowerCase().includes(query) &&
       (this.activeSegment === 'all' || item.category === this.activeSegment)
     );
@@ -295,54 +354,35 @@ export class DashboardPage {
   }
 
   get filteredCategories() {
+    let result;
     if (this.activeSegment === 'vegetables') {
-      return [{ name: 'Fresh Vegetables', items: this.filteredProducts.filter(p => p.category === 'vegetables') }];
+      result = [{ name: 'Fresh Vegetables', items: this.filteredProducts.filter(p => p.category === 'vegetables') }];
     } else if (this.activeSegment === 'meats') {
-      return [{ name: 'Quality Meats', items: this.filteredProducts.filter(p => p.category === 'meats') }];
+      result = [{ name: 'Quality Meats', items: this.filteredProducts.filter(p => p.category === 'meats') }];
+    } else {
+      result = [
+        { name: 'Fresh Vegetables', items: this.filteredProducts.filter(p => p.category === 'vegetables') },
+        { name: 'Quality Meats', items: this.filteredProducts.filter(p => p.category === 'meats') }
+      ];
     }
-    return [
-      { name: 'Fresh Vegetables', items: this.filteredProducts.filter(p => p.category === 'vegetables') },
-      { name: 'Quality Meats', items: this.filteredProducts.filter(p => p.category === 'meats') }
-    ];
+    console.log('Filtered categories:', result);
+    return result;
   }
 
-  // Helper Methods
   private updateSummaryCards() {
     const vegetables = this.products.filter(p => p.category === 'vegetables');
     const meats = this.products.filter(p => p.category === 'meats');
-    
+
     this.summaryCards = [
-      {
-        title: 'Available Products',
-        value: this.products.length,
-        icon: 'cube-outline',
-        color: 'primary'
-      },
-      {
-        title: 'Special Offers',
-        value: 3, // Hardcoded for demo
-        icon: 'pricetag-outline',
-        color: 'warning'
-      },
-      {
-        title: 'Fresh Vegetables',
-        value: vegetables.length,
-        icon: 'leaf-outline',
-        color: 'success'
-      },
-      {
-        title: 'Quality Meats',
-        value: meats.length,
-        icon: 'nutrition-outline',
-        color: 'danger'
-      }
+      { title: 'Available Products', value: this.products.length, icon: 'cube-outline', color: 'primary' },
+      { title: 'Special Offers', value: 3, icon: 'pricetag-outline', color: 'warning' },
+      { title: 'Fresh Vegetables', value: vegetables.length, icon: 'leaf-outline', color: 'success' },
+      { title: 'Quality Meats', value: meats.length, icon: 'nutrition-outline', color: 'danger' }
     ];
   }
 
   getSelectedTotalPrice(): number {
-    return this.selectedItems.reduce((total, item) => {
-      return total + (item.selectedQuantity * item.price);
-    }, 0);
+    return this.selectedItems.reduce((total, item) => total + (item.selectedQuantity * item.price), 0);
   }
 
   getSelectedTotalQuantity(): number {
@@ -350,11 +390,7 @@ export class DashboardPage {
   }
 
   formatPrice(price: number): string {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 2
-    }).format(price);
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', minimumFractionDigits: 2 }).format(price);
   }
 
   async presentToast(message: string, color: 'primary' | 'success' | 'warning' | 'danger' = 'primary') {
@@ -373,11 +409,4 @@ export class DashboardPage {
       this.router.navigate(['/login']);
     });
   }
-
-  ngOnInit() {
-    setTimeout(() => {
-      this.showWelcome = false;
-    }, 5000); // 5 seconds
-  }
-
 }

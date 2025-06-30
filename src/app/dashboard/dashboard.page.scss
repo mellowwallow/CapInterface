@@ -184,6 +184,13 @@ ion-item-divider {
   color: var(--text-muted);
 }
 
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
 ion-button[size="small"] {
   --background: var(--primary-color);
   --color: #fff;
